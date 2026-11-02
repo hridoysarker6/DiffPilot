@@ -1,0 +1,42 @@
+# DiffPilot config template.
+# Copy: config.example.yaml -> config.yaml (ba Setup tab theke save korle config.yaml nijei toiri hoy).
+# config.yaml git e jay na (password thake).
+legacy:
+  baseUrl: https://legacy.example.com
+new:
+  baseUrl: https://new.example.com
+
+# Khali = auto-detect (password field khuje, tar age-r input ke username/email dhore).
+login:
+  path: ""
+  emailSelector: ""
+  passwordSelector: ""
+  submitSelector: ""
+
+users:
+  - role: admin
+    email: admin@example.com
+    password: change-me
+
+# Optional. Khali thakle login er por menu/link follow kore page khuje nibe.
+routes: []
+
+crawl:
+  maxPages: 60
+
+ignore:
+  paths: []
+  columns: []
+  text: []
+  selectors: []
+
+compare:
+  fieldKey: name   # name | label
+
+filters:
+  enabled: true
+  maxOptions: 8
+  maxControls: 3
+  search: true
+
+headless: true

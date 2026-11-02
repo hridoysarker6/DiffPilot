@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Real config: test user password ache. Template: config.example.yaml
+config.yaml
+
+# Test run output (results.json, report.html/xlsx, screenshots)
+runs/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Playwright
+test-results/
+playwright-report/
+.playwright/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp

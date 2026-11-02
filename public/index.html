@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DiffPilot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .tab.on { background:#f4f4f5; font-weight:500; color:#18181b }
+  .badge { padding:2px 8px; border-radius:6px; font-size:12px }
+  .ok { background:#dcfce7; color:#166534 } .warn { background:#fef3c7; color:#92400e } .fail { background:#fee2e2; color:#991b1b }
+  .cell { width:30px; height:24px; border-radius:4px; display:inline-block; margin:2px; cursor:pointer; border:1px solid #e4e4e7 }
+  .cell.ok { background:#bbf7d0 } .cell.warn { background:#fde68a } .cell.fail { background:#fecaca } .cell.none { background:#f4f4f5 }
+</style>
+</head>
+<body class="bg-white text-zinc-900 text-sm">
+<div class="max-w-6xl mx-auto p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-medium">DiffPilot <span class="text-zinc-400 text-sm font-normal">legacy vs new parity tester</span></h1>
+    <div id="runBadge" class="text-xs text-zinc-500"></div>
+  </div>
+  <div id="tabs" class="flex gap-1 mb-4">
+    <button data-t="setup" class="tab px-3 py-1.5 rounded text-zinc-500">Setup</button>
+    <button data-t="run" class="tab px-3 py-1.5 rounded text-zinc-500">Run</button>
+    <button data-t="res" class="tab px-3 py-1.5 rounded text-zinc-500">Results</button>
+    <button data-t="mx" class="tab px-3 py-1.5 rounded text-zinc-500">Role matrix</button>
+  </div>
+
+  <section id="setup" class="hidden space-y-3">
+    <div class="border rounded-xl p-4 grid grid-cols-2 gap-3">
+      <label>Legacy URL<input id="legacyUrl" class="mt-1 w-full border rounded px-2 py-1.5" placeholder="https://legacy.example.com"></label>
+      <label>New URL<input id="newUrl" class="mt-1 w-full border rounded px-2 py-1.5" placeholder="https://new.example.com"></label>
+      <div class="col-span-2 flex items-center gap-3">
+        <button id="check" class="border rounded px-3 py-1.5 hover:bg-zinc-50">Test connection</button>
+        <span id="checkOut" class="text-zinc-500"></span>
+      </div>
+    </div>
+    <div class="border rounded-xl p-4">
+      <div class="font-medium mb-2">Test users</div>
+      <table class="w-full" id="userTable"></table>
+      <div class="flex gap-2 mt-3 flex-wrap">
+        <input id="nr" class="border rounded px-2 py-1.5 w-32" placeholder="role">
+        <input id="ne" class="border rounded px-2 py-1.5 flex-1 min-w-40" placeholder="email / username">
+        <input id="np" type="password" class="border rounded px-2 py-1.5 w-40" placeholder="password">
+        <button id="addUser" class="border rounded px-3 py-1.5 hover:bg-zinc-50">Add user</button>
+      </div>
+      <div id="userErr" class="text-red-600 text-xs mt-1"></div>
+    </div>
+    <div class="border rounded-xl p-4 grid grid-cols-2 gap-3">
+      <label class="col-span-2">Route list (optional, ek line e ekta path). Khali thakle crawl hobe.
+        <textarea id="routes" rows="4" class="mt-1 w-full border rounded px-2 py-1.5 font-mono text-xs" placeholder="/dashboard&#10;/orders&#10;/customers"></textarea></label>
+      <label>Crawl max pages<input id="maxPages" type="number" class="mt-1 w-full border rounded px-2 py-1.5"></label>
+      <label>Ignore text regex (ek line e ekta)<textarea id="igText" rows="2" class="mt-1 w-full border rounded px-2 py-1.5 font-mono text-xs"></textarea></label>
+      <label>Ignore column regex<textarea id="igCols" rows="2" class="mt-1 w-full border rounded px-2 py-1.5 font-mono text-xs"></textarea></label>
+      <label>Ignore path regex<textarea id="igPaths" rows="2" class="mt-1 w-full border rounded px-2 py-1.5 font-mono text-xs"></textarea></label>
+      <label>Ignore CSS selectors (dev toolbar etc., debugbar auto bad)<textarea id="igSel" rows="2" class="mt-1 w-full border rounded px-2 py-1.5 font-mono text-xs" placeholder="#my-dev-panel"></textarea></label>
+      <div class="col-span-2 flex items-center gap-4 flex-wrap">
+        <label class="flex items-center gap-2"><input type="checkbox" id="fEnabled"> Test filters (dropdown ar search)</label>
+        <label class="flex items-center gap-2">Max options per filter <input id="fMaxOpt" type="number" min="1" max="40" class="border rounded px-2 py-1 w-20"></label>
+        <label class="flex items-center gap-2">Max filters per page <input id="fMaxCtl" type="number" min="1" max="10" class="border rounded px-2 py-1 w-20"></label>
+        <label class="flex items-center gap-2"><input type="checkbox" id="fSearch"> Search box test</label>
+      </div>
+      <label>Form field match by
+        <select id="fieldKey" class="mt-1 w-full border rounded px-2 py-1.5"><option value="name">Field name (same framework)</option><option value="label">Label text (framework alada)</option></select></label>
+      <details class="col-span-2"><summary class="cursor-pointer text-zinc-500">Login selectors (khali rakhle auto-detect hobe)</summary>
+        <div class="grid grid-cols-2 gap-3 mt-2">
+          <label>Login path<input id="lPath" class="mt-1 w-full border rounded px-2 py-1.5"></label>
+          <label>Email selector<input id="lEmail" class="mt-1 w-full border rounded px-2 py-1.5"></label>
+          <label>Password selector<input id="lPass" class="mt-1 w-full border rounded px-2 py-1.5"></label>
+          <label>Submit selector<input id="lSubmit" class="mt-1 w-full border rounded px-2 py-1.5"></label>
+        </div>
+      </details>
+      <div class="col-span-2 flex items-center gap-3">
+        <button id="save" class="bg-zinc-900 text-white rounded px-4 py-1.5 hover:bg-zinc-700">Save settings</button>
+        <span id="saveOut" class="text-zinc-500"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="run" class="hidden">
+    <div class="border rounded-xl p-4">
+      <div class="flex gap-2 items-center mb-3">
+        <select id="runRole" class="border rounded px-2 py-1.5"></select>
+        <button id="go" class="bg-zinc-900 text-white rounded px-4 py-1.5 hover:bg-zinc-700">Start test</button>
+        <button id="stop" class="border rounded px-3 py-1.5 hover:bg-zinc-50">Stop</button>
+      </div>
+      <div class="h-2 bg-zinc-100 rounded overflow-hidden"><div id="bar" class="h-full bg-blue-600 transition-all" style="width:0%"></div></div>
+      <div id="pct" class="text-zinc-500 my-2">Ready</div>
+      <div id="log" class="font-mono text-xs bg-zinc-50 rounded-lg p-3 h-80 overflow-auto leading-relaxed"></div>
+    </div>
+  </section>
+
+  <section id="res" class="hidden">
+    <div class="flex gap-2 mb-3 flex-wrap items-center">
+      <select id="runSel" class="border rounded px-2 py-1.5"></select>
+      <select id="fRole" class="border rounded px-2 py-1.5"></select>
+      <input id="fQ" class="border rounded px-2 py-1.5 flex-1 min-w-40" placeholder="Search page">
+      <a id="xlsx" class="border rounded px-3 py-1.5 hover:bg-zinc-50" href="#">Export Excel</a>
+      <a id="html" class="border rounded px-3 py-1.5 hover:bg-zinc-50" href="#" target="_blank">Open HTML report</a>
+    </div>
+    <div id="sum" class="grid grid-cols-4 gap-3 mb-3"></div>
+    <div class="border rounded-xl overflow-hidden"><table class="w-full" id="rt"></table></div>
+    <div id="detail" class="border rounded-xl p-4 mt-3 hidden"></div>
+  </section>
+
+  <section id="mx" class="hidden">
+    <div class="border rounded-xl p-4 overflow-x-auto"><table id="mt"></table>
+      <div class="text-zinc-500 mt-2 text-xs">Green same, yellow warning, red mismatch, grey page not tested for that role. Cell click korle detail.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LABEL = { ok: 'Passed', warn: 'Warning', fail: 'Failed' };
+let cfg = null, users = [], run = null, sevFilter = 'all', selId = null;
+
+async function api(url, opts) {
+  const r = await fetch(url, opts && opts.body ? { ...opts, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opts.body) } : opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+function showTab(t, keepData) {
+  ['setup', 'run', 'res', 'mx'].forEach((i) => $(i).classList.toggle('hidden', i !== t));
+  document.querySelectorAll('#tabs .tab').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+  if (t === 'res' && !keepData) loadRuns();
+  if (t === 'mx') matrix();
+}
+document.querySelectorAll('#tabs .tab').forEach((b) => (b.onclick = () => showTab(b.dataset.t)));
+
+/* ---------- Setup ---------- */
+async function loadConfig() {
+  cfg = await api('/api/config');
+  users = cfg.users.map((u) => ({ ...u }));
+  $('legacyUrl').value = cfg.legacy.baseUrl; $('newUrl').value = cfg.new.baseUrl;
+  $('routes').value = (cfg.routes || []).join('\n'); $('maxPages').value = cfg.crawl.maxPages;
+  $('igText').value = (cfg.ignore.text || []).join('\n'); $('igCols').value = (cfg.ignore.columns || []).join('\n'); $('igPaths').value = (cfg.ignore.paths || []).join('\n'); $('igSel').value = (cfg.ignore.selectors || []).join('\n'); $('fieldKey').value = (cfg.compare && cfg.compare.fieldKey) || 'name';
+  const fl = cfg.filters || {}; $('fEnabled').checked = fl.enabled !== false; $('fMaxOpt').value = fl.maxOptions || 8; $('fMaxCtl').value = fl.maxControls || 3; $('fSearch').checked = fl.search !== false;
+  $('lPath').value = cfg.login.path; $('lEmail').value = cfg.login.emailSelector; $('lPass').value = cfg.login.passwordSelector; $('lSubmit').value = cfg.login.submitSelector;
+  renderUsers();
+}
+function renderUsers() {
+  $('userTable').innerHTML = '<tr class="text-left text-zinc-500"><th class="py-1">Role</th><th>Email</th><th>Password</th><th></th></tr>' +
+    users.map((u, i) => `<tr class="border-t"><td class="py-1.5">${esc(u.role)}</td><td>${esc(u.email)}</td><td>${u.password || u.hasPassword ? '••••••••' : '<span class="text-red-600">missing</span>'}</td><td class="text-right"><button data-i="${i}" class="rm text-zinc-400 hover:text-red-600">Remove</button></td></tr>`).join('');
+  document.querySelectorAll('.rm').forEach((b) => (b.onclick = () => { users.splice(+b.dataset.i, 1); renderUsers(); }));
+  const roles = [...new Set(users.map((u) => u.role))];
+  $('runRole').innerHTML = '<option value="">All roles</option>' + roles.map((r) => `<option>${esc(r)}</option>`).join('');
+}
+$('addUser').onclick = () => {
+  const role = $('nr').value.trim(), email = $('ne').value.trim(), password = $('np').value;
+  if (!role || !email || !password) { $('userErr').textContent = 'Role, email ar password dite hobe'; return; }
+  $('userErr').textContent = '';
+  users.push({ role, email, password });
+  $('nr').value = $('ne').value = $('np').value = '';
+  renderUsers();
+};
+const lines = (id) => $(id).value.split('\n').map((s) => s.trim()).filter(Boolean);
+$('save').onclick = async () => {
+  try {
+    cfg = await api('/api/config', { method: 'PUT', body: {
+      legacy: { baseUrl: $('legacyUrl').value }, new: { baseUrl: $('newUrl').value }, users,
+      routes: lines('routes'), compare: { fieldKey: $('fieldKey').value }, filters: { enabled: $('fEnabled').checked, maxOptions: $('fMaxOpt').value, maxControls: $('fMaxCtl').value, search: $('fSearch').checked }, crawl: { maxPages: $('maxPages').value },
+      ignore: { text: lines('igText'), columns: lines('igCols'), paths: lines('igPaths'), selectors: lines('igSel') },
+      login: { path: $('lPath').value, emailSelector: $('lEmail').value, passwordSelector: $('lPass').value, submitSelector: $('lSubmit').value },
+    } });
+    users = cfg.users.map((u) => ({ ...u }));
+    renderUsers();
+    $('saveOut').textContent = 'Saved';
+  } catch (e) { $('saveOut').textContent = e.message; }
+  setTimeout(() => ($('saveOut').textContent = ''), 2500);
+};
+$('check').onclick = async () => {
+  await $('save').onclick();
+  $('checkOut').textContent = 'Checking…';
+  const r = await api('/api/check', { method: 'POST' });
+  const f = (x) => `<span class="${x.ok ? 'text-green-700' : 'text-red-600'}">${esc(x.msg)}</span>`;
+  $('checkOut').innerHTML = `Legacy: ${f(r.legacy)} · New: ${f(r.new)}`;
+};
+
+/* ---------- Run ---------- */
+function setProgress(done, total) {
+  $('bar').style.width = (total ? Math.round((done / total) * 100) : 0) + '%';
+  $('pct').textContent = total ? `${done} / ${total} pages` : 'Ready';
+}
+function addLog(e) {
+  const color = { ok: '#166534', warn: '#92400e', fail: '#991b1b', error: '#991b1b', info: '#52525b' }[e.level] || '#52525b';
+  const d = document.createElement('div'); d.style.color = color; d.textContent = e.msg;
+  $('log').appendChild(d); $('log').scrollTop = 1e6;
+}
+function setRunning(on) {
+  $('go').disabled = on; $('go').classList.toggle('opacity-50', on);
+  $('runBadge').textContent = on ? 'Running…' : '';
+}
+$('go').onclick = async () => {
+  await $('save').onclick();
+  $('log').innerHTML = ''; setProgress(0, 0);
+  try { const role = $('runRole').value; await api('/api/run', { method: 'POST', body: { roles: role ? [role] : [] } }); setRunning(true); }
+  catch (e) { addLog({ level: 'error', msg: e.message }); }
+};
+$('stop').onclick = () => api('/api/stop', { method: 'POST' });
+
+const es = new EventSource('/api/events');
+es.onmessage = (m) => {
+  const e = JSON.parse(m.data);
+  if (e.type === 'state') {
+    setRunning(e.state.running); setProgress(e.state.progress.done, e.state.progress.total);
+    $('log').innerHTML = ''; e.state.logs.forEach(addLog);
+  }
+  if (e.type === 'log') addLog(e);
+  if (e.type === 'progress') setProgress(e.done, e.total);
+  if (e.type === 'started') setRunning(true);
+  if (e.type === 'done') { setRunning(false); selId = e.runId; if (!$('res').classList.contains('hidden')) loadRuns(); }
+};
+
+/* ---------- Results ---------- */
+async function loadRuns() {
+  const list = await api('/api/runs');
+  $('runSel').innerHTML = list.length ? list.map((r) => `<option value="${r.id}">${r.id} (${r.fail} failed, ${r.warn} warning)</option>`).join('') : '<option value="">No runs yet</option>';
+  if (selId && list.some((r) => r.id === selId)) $('runSel').value = selId;
+  await loadRun($('runSel').value);
+}
+async function loadRun(id) {
+  run = id ? await api('/api/runs/' + id) : null;
+  $('xlsx').href = id ? `/api/runs/${id}/export.xlsx` : '#';
+  $('html').href = id ? `/runs/${id}/report.html` : '#';
+  const roles = run ? [...new Set(run.results.map((r) => r.role))] : [];
+  const cur = $('fRole').value;
+  $('fRole').innerHTML = '<option value="">All roles</option>' + roles.map((r) => `<option>${esc(r)}</option>`).join('');
+  $('fRole').value = roles.includes(cur) ? cur : '';
+  $('detail').classList.add('hidden');
+  renderResults(); if (!$('mx').classList.contains('hidden')) matrix();
+}
+$('runSel').onchange = () => { selId = $('runSel').value; loadRun(selId); };
+$('fRole').onchange = renderResults; $('fQ').oninput = renderResults;
+
+function renderResults() {
+  const all = run ? run.results : [];
+  const c = { all: all.length, ok: 0, warn: 0, fail: 0 }; all.forEach((r) => c[r.severity]++);
+  $('sum').innerHTML = [['all', 'Total', ''], ['ok', 'Passed', 'text-green-700'], ['warn', 'Warning', 'text-amber-700'], ['fail', 'Failed', 'text-red-700']]
+    .map(([k, l, col]) => `<button data-f="${k}" class="text-left bg-zinc-50 rounded-lg p-3 ${sevFilter === k ? 'ring-2 ring-blue-500' : ''}"><div class="text-zinc-500">${l}</div><div class="text-2xl font-medium ${col}">${c[k]}</div></button>`).join('');
+  document.querySelectorAll('#sum button').forEach((b) => (b.onclick = () => { sevFilter = sevFilter === b.dataset.f ? 'all' : b.dataset.f; renderResults(); }));
+  const role = $('fRole').value, q = $('fQ').value.toLowerCase();
+  const rows = all.filter((r) => (sevFilter === 'all' || r.severity === sevFilter) && (!role || r.role === role) && (!q || r.path.toLowerCase().includes(q)));
+  $('rt').innerHTML = '<tr class="text-left text-zinc-500 bg-zinc-50"><th class="p-2">Role</th><th>Page</th><th>Status</th><th>Issue</th></tr>' +
+    (rows.map((r) => `<tr class="border-t cursor-pointer hover:bg-zinc-50" data-id="${esc(r.id)}"><td class="p-2">${esc(r.role)}</td><td class="font-mono text-xs">${esc(r.path)}</td><td><span class="badge ${r.severity}">${LABEL[r.severity]}</span></td><td>${esc(r.summary)}</td></tr>`).join('') ||
+    '<tr><td colspan="4" class="p-3 text-zinc-500">Kono result nai.</td></tr>');
+  document.querySelectorAll('#rt tr[data-id]').forEach((tr) => (tr.onclick = () => showDetail(tr.dataset.id, 'detail')));
+}
+
+function showDetail(id, target) {
+  const r = run.results.find((x) => x.id === id);
+  if (!r) return;
+  const base = `/runs/${run.id}/`;
+  const el = $(target); el.classList.remove('hidden');
+  const chips = (arr, cls) => arr.map((x) => `<span class="inline-block rounded px-2 py-0.5 mr-1 mb-1 ${cls}">${esc(x)}</span>`).join('');
+  const RED = 'bg-red-100 text-red-800', GRN = 'bg-green-100 text-green-800';
+  const visual = (i) => {
+    const d = i.detail;
+    if (!d) return `<div class="grid grid-cols-2 gap-3"><div><div class="text-zinc-500 text-xs">Legacy</div><div class="break-words">${esc(i.legacy) || '<span class="text-zinc-400">-</span>'}</div></div><div><div class="text-zinc-500 text-xs">New</div><div class="break-words">${esc(i.new) || '<span class="text-zinc-400">-</span>'}</div></div></div>`;
+    if (d.type === 'list') return (d.missing.length ? `<div class="mb-1"><span class="text-xs text-red-700 font-medium">Legacy te ase, New te nai:</span><div class="mt-1">${chips(d.missing, RED)}</div></div>` : '') +
+      (d.extra.length ? `<div><span class="text-xs text-green-700 font-medium">New te beshi ase:</span><div class="mt-1">${chips(d.extra, GRN)}</div></div>` : '');
+    const th = d.headers.map((h) => `<th class="px-2 py-1 text-left font-medium text-zinc-500">${esc(h)}</th>`).join('');
+    const cells = (row, bad, cls) => row.map((c, k) => `<td class="px-2 py-1 ${bad && bad.includes(k) ? cls + ' font-medium' : ''}">${esc(c)}</td>`).join('');
+    const rows = d.changed.map((c) => `<tr class="border-t"><td class="px-2 py-1 text-xs text-zinc-500">Legacy</td>${cells(c.legacy, c.diff, RED)}</tr><tr><td class="px-2 py-1 text-xs text-zinc-500">New</td>${cells(c.new, c.diff, GRN)}</tr>`).join('') +
+      d.missing.map((r) => `<tr class="border-t ${RED}"><td class="px-2 py-1 text-xs font-medium">Missing in New</td>${cells(r)}</tr>`).join('') +
+      d.extra.map((r) => `<tr class="border-t ${GRN}"><td class="px-2 py-1 text-xs font-medium">Extra in New</td>${cells(r)}</tr>`).join('');
+    return `<div class="overflow-x-auto"><table class="w-full text-xs"><tr><th></th>${th}</tr>${rows}</table></div>`;
+  };
+  const issues = r.issues.length
+    ? `<div class="mt-3 space-y-2">${r.issues.map((i) => `<div class="border rounded-lg p-3 ${i.sev === 'fail' ? 'border-red-200' : 'border-amber-200'}"><div class="font-medium mb-1 ${i.sev === 'fail' ? 'text-red-700' : 'text-amber-700'}">${esc(i.field)}</div>${visual(i)}</div>`).join('')}</div>`
+    : '<div class="text-zinc-500 mt-2">No differences found.</div>';
+  const shot = (k, label) => r.shots && r.shots[k] ? `<figure><figcaption class="text-zinc-500 mb-1">${label}</figcaption><a href="${base + r.shots[k]}" target="_blank"><img class="w-full border rounded" loading="lazy" src="${base + r.shots[k]}"></a></figure>` : '';
+  const ft = (r.filters || []).length
+    ? `<div class="mt-3"><div class="font-medium mb-1">Filter tests (${r.filters.length})</div><table class="w-full text-xs"><tr class="text-left text-zinc-500"><th class="py-1">Filter</th><th>Value</th><th>Legacy rows</th><th>New rows</th><th>Result</th></tr>${r.filters.map((f) =>
+        `<tr class="border-t"><td class="py-1">${esc(f.control)}${f.kind === 'search' ? ' (search)' : ''}</td><td>${esc(f.option)}</td><td>${f.legacyRows ?? '-'}</td><td>${f.newRows ?? '-'}</td><td><span class="badge ${f.severity}">${LABEL[f.severity]}</span></td></tr>`).join('')}</table></div>`
+    : '';
+  el.innerHTML = `<div class="flex items-center gap-2"><div class="font-medium">${esc(r.role)} · <span class="font-mono text-xs">${esc(r.path)}</span></div><span class="badge ${r.severity}">${LABEL[r.severity]}</span>
+    <span class="text-zinc-500 text-xs">legacy HTTP ${r.legacy.status}, new HTTP ${r.new.status}</span></div>${issues}${ft}
+    <div class="grid grid-cols-2 gap-3 mt-3">${shot('legacy', 'Legacy')}${shot('new', 'New')}</div>`;
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ---------- Matrix ---------- */
+function matrix() {
+  if (!run) { $('mt').innerHTML = '<tr><td class="text-zinc-500">Run a test first.</td></tr>'; return; }
+  const roles = [...new Set(run.results.map((r) => r.role))];
+  const paths = [...new Set(run.results.map((r) => r.path))];
+  $('mt').innerHTML = '<tr><th class="text-left p-1 text-zinc-500">Role</th>' + paths.map((p) => `<th class="p-1 text-zinc-500 font-normal" style="writing-mode:vertical-rl;max-height:140px;text-align:left"><span class="font-mono text-[11px]">${esc(p)}</span></th>`).join('') + '</tr>' +
+    roles.map((role) => `<tr><td class="p-1">${esc(role)}</td>${paths.map((p) => {
+      const r = run.results.find((x) => x.role === role && x.path === p);
+      return `<td>${r ? `<span class="cell ${r.severity}" data-id="${esc(r.id)}" title="${esc(p)}"></span>` : '<span class="cell none"></span>'}</td>`;
+    }).join('')}</tr>`).join('');
+  document.querySelectorAll('#mt .cell[data-id]').forEach((c) => (c.onclick = () => { showTab('res', true); showDetail(c.dataset.id, 'detail'); }));
+}
+
+loadConfig().then(() => showTab(cfg.users.length && cfg.legacy.baseUrl ? 'res' : 'setup'));
+</script>
+</body>
+</html>
